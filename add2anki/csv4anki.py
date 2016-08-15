@@ -21,9 +21,9 @@ def csv4anki():
             if not word:
                 continue
             print('translating "{}"'.format(word))
-            front, back = add2anki.cambridge.translate(
+            note = add2anki.cambridge.translate(
                 word, args.src_lang, args.dst_lang)
-            print(front + "\t" + back, file=output_file)
+            print(note.word + "\t" + note.to_html(), file=output_file)
 
 
 if __name__ == '__main__':

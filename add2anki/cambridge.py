@@ -1,20 +1,73 @@
 """Script to extract data for selected word from http://dictionary.cambridge.org"""
 import urllib.request
 from bs4 import BeautifulSoup
-import htmlmin
 import re
+
+
+class CambridgeNote(object):
+    """ Structured information from cambridge.org about translated word
+
+    Attributes:
+        word: dictionary form of requested word
+        pos_list: possible part of speech
+        transcription: transcription
+        translations: list of possible translations
+        url: source web page
+    """
+
+    def __init__(self, word, pos_list, transcription, translations, url):
+        self._word = word
+        self._pos_list = pos_list
+        self._transcription = transcription
+        self._translations = translations
+        self._url = url
+
+    @property
+    def word(self):
+        return self._word
+
+    @property
+    def pos_list(self):
+        return self._pos_list
+
+    @property
+    def transcription(self):
+        return self._transcription
+
+    @property
+    def translations(self):
+        return self._translations
+
+    @property
+    def url(self):
+        return self._url
+
+    def to_html(self):
+        return '<div style="color:#444;font-style:italic">{}</div>' \
+               '<div style="color:#e84427">&frasl;{}&frasl;</div>' \
+               '<div style="color: #0096ab">{}</div>' \
+               '<div style="margin-top:1.25em">' \
+               '<a href="{}">See more on dictionary.cambridge.org</a>' \
+               '</div>' \
+            .format(self._join_list(self._pos_list), self._transcription,
+                    self._join_list(self._translations), self._url)
+
+    def to_string(self):
+        return 'pos: {}\ntranscription:{}\ntranslation:{}\nurl:{}'\
+            .format(self._join_list(self._pos_list), self._transcription,
+                    self._join_list(self._translations), self._url)
+
+    def _join_list(self, string_list):
+        return ", ".join(string_list)
+
 
 # Query template for dictionary.cambridge.org
 _CAMBRIDGE_QUERY_URL = \
     'http://dictionary.cambridge.org/us/search/{src}-{dst}/direct/?q={word}'
 
-# class of span with word translation
-_TRANS_CLASS = 'trans'
-
 
 def translate(word, src_lang, dst_lang):
-    """fetch data from cambridge.org in convenient format"""
-
+    """fetch data from dictionary.cambridge.org in convenient format"""
     url, bs = _query(word, src_lang, dst_lang)
     dictionary_form = _extract_title(bs)
 
@@ -29,22 +82,21 @@ def translate(word, src_lang, dst_lang):
     if not re.match(r'\A[\w]+\Z', dictionary_form):
         raise Exception("Can't parse answer for {}".format(dictionary_form))
 
-    part_of_speech = bs.find(class_='posgram').span.text
+    pos = []
+    for pos_html in bs.findAll(class_='posgram'):
+        pos.append(pos_html.span.text)
+
     transcription = bs.find(class_='ipa').text
 
-    translation_body = bs.find(class_='di-body')
-    _add_formatting(translation_body)
-    _cleanup_html(translation_body)
-    translation = _minimize(translation_body)
+    all_trans = []
+    for translation_html in bs.findAll(class_='trans'):
+        all_trans += map(str.strip, translation_html.text.split(','))
 
-    return dictionary_form, \
-           '<div style="font-size:16px">' \
-           '<div style="font-size:1.25em;color:#444;font-style:italic">{}</div>' \
-           '<div style="color:#e84427">&frasl;{}&frasl;</div>' \
-           '{}' \
-           '<div style="margin-top:1.25em">' \
-           '<a href="{}">See more on dictionary.cambridge.org</a>' \
-           '</div></div>'.format(part_of_speech, transcription, translation, url)
+    # remove duplicates
+    uniq_trans = []
+    [uniq_trans.append(item) for item in all_trans if item not in uniq_trans]
+
+    return CambridgeNote(dictionary_form, pos, transcription, uniq_trans, url)
 
 
 def _query(word, src_lang, dst_lang):
@@ -59,40 +111,3 @@ def _query(word, src_lang, dst_lang):
 def _extract_title(bs):
     """ Extract title of page"""
     return bs.find(class_='di-title').text
-
-
-def _add_formatting(html):
-    """ Add styles to data. Don't using class attribute because we haven't
-        special Anki card type with styles"""
-    # add padding between translations
-    for tag in html.findAll(class_='sense-block'):
-        tag['style'] = 'padding-top:1em'
-    # make translation word special
-    for tag in html.findAll(class_=_TRANS_CLASS):
-        tag['style'] = 'color: #0096ab'
-    # we don't need extra margin
-    for tag in html.findAll('p'):
-        tag.name = 'div'
-
-
-def _cleanup_html(html):
-    """ Remove unnecessary tags and attributes"""
-    for tag in html.findAll('a'):
-        tag.replaceWithChildren()
-    for tag in html.findAll('span'):
-        if _TRANS_CLASS not in tag.attrs['class']:
-            tag.replaceWithChildren()
-    for tag in html.findAll():
-        for attr in list(tag.attrs):
-            if attr != 'style':
-                del tag[attr]
-
-
-def _minimize(html):
-    """ Minimize html to store in csv file """
-    # remove '›' because it is useless, '\n' and '\t' because they
-    # can break csv file
-    return htmlmin.minify(str(html)
-                          .replace('›', '')
-                          .replace('\n', '')
-                          .replace('\t', ''))
