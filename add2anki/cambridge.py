@@ -8,12 +8,44 @@ class CambridgeNote(object):
     """ Structured information from cambridge.org about translated word
 
     Attributes:
-        word: dictionary form of requested word
-        pos_list: possible part of speech
-        transcription: transcription
-        translations: list of possible translations
-        url: source web page
+        _word: dictionary form of requested word
+        _pos_list: possible part of speech
+        _transcription: list of CambridgeTranslation
+        _translations: list of possible translations
+        _url: source web page
     """
+
+    class CambridgeTranslation(object):
+        """ Information about one possible translation of word
+
+        Attributes:
+            _title: main "theme" of translation
+            _definition: detailed explanation
+            _translations: list of translations in destination language
+            _example: sentence with translated word for selected topic
+        """
+
+        def __init__(self, title, definition, translations, example):
+            self._title = title
+            self._definition = definition
+            self._translations = translations
+            self._example = example
+
+        @property
+        def title(self):
+            return self._title
+
+        @property
+        def definition(self):
+            return self._definition
+
+        @property
+        def translations(self):
+            return self._translations
+
+        @property
+        def example(self):
+            return self._example
 
     def __init__(self, word, pos_list, transcription, translations, url):
         self._word = word
@@ -42,24 +74,6 @@ class CambridgeNote(object):
     def url(self):
         return self._url
 
-    def to_html(self):
-        return '<div style="color:#444;font-style:italic">{}</div>' \
-               '<div style="color:#e84427">&frasl;{}&frasl;</div>' \
-               '<div style="color: #0096ab">{}</div>' \
-               '<div style="margin-top:1.25em">' \
-               '<a href="{}">See more on dictionary.cambridge.org</a>' \
-               '</div>' \
-            .format(self._join_list(self._pos_list), self._transcription,
-                    self._join_list(self._translations), self._url)
-
-    def to_string(self):
-        return 'pos: {}\ntranscription:{}\ntranslation:{}\nurl:{}'\
-            .format(self._join_list(self._pos_list), self._transcription,
-                    self._join_list(self._translations), self._url)
-
-    def _join_list(self, string_list):
-        return ", ".join(string_list)
-
 
 # Query template for dictionary.cambridge.org
 _CAMBRIDGE_QUERY_URL = \
@@ -69,18 +83,18 @@ _CAMBRIDGE_QUERY_URL = \
 def translate(word, src_lang, dst_lang):
     """fetch data from dictionary.cambridge.org in convenient format"""
     url, bs = _query(word, src_lang, dst_lang)
-    dictionary_form = _extract_title(bs)
+    dict_form = _extract_title(bs)
 
     # check derivation form
-    if '“' in dictionary_form:
-        derived = re.search(r'“([^”]*)”', dictionary_form).group(0)
+    if '“' in dict_form:
+        derived = re.search(r'“([^”]*)”', dict_form).group(0)
         derived = derived[1:-1]
         print('"{}" is derivation from "{}". Search it.'.format(word, derived))
         url, bs = _query(derived, src_lang, dst_lang)
-        dictionary_form = _extract_title(bs)
+        dict_form = _extract_title(bs)
 
-    if not re.match(r'\A[\w]+\Z', dictionary_form):
-        raise Exception("Can't parse answer for {}".format(dictionary_form))
+    if not re.match(r'\A[\w]+\Z', dict_form):
+        raise Exception("Can't parse answer for {}".format(dict_form))
 
     pos = []
     for pos_html in bs.findAll(class_='posgram'):
@@ -88,15 +102,47 @@ def translate(word, src_lang, dst_lang):
 
     transcription = bs.find(class_='ipa').text
 
-    all_trans = []
-    for translation_html in bs.findAll(class_='trans'):
-        all_trans += map(str.strip, translation_html.text.split(','))
+    translations = []
+    for sense_block in bs.findAll(class_='sense-block'):
+        if sense_block.find(class_='phrase-block'):
+            continue
 
-    # remove duplicates
-    uniq_trans = []
-    [uniq_trans.append(item) for item in all_trans if item not in uniq_trans]
+        title_block = sense_block.find(class_='sense-title')
+        title = title_block.text if title_block else None
 
-    return CambridgeNote(dictionary_form, pos, transcription, uniq_trans, url)
+        definition = sense_block.find(class_='def').text
+        trans_str = sense_block.find(class_='trans').text
+        trans = list(map(str.strip, trans_str.split(',')))
+
+        example_block = sense_block.find(class_='examp')
+        example = example_block.text if example_block else None
+
+        translations.append(CambridgeNote.CambridgeTranslation(
+            title, definition, trans, example))
+
+    return CambridgeNote(dict_form, pos, transcription, translations, url)
+
+
+def to_html(note):
+    """ Convert CambridgeNote to html for Anki"""
+    translations_html = ''
+    for trans in note.translations:
+        translations_html += '<div style="margin-top:0.5em">' \
+                             '<div style="font-weight: bold">{}</div>' \
+                             '<div>{}</div>' \
+                             '<div style="color: #0096ab">{}</div>' \
+                             '<div>{}</div>' \
+                             '</div>'\
+            .format(trans.title, trans.definition,
+                    _join_list(trans.translations), trans.example)
+    return '<div style="color:#444;font-style:italic">{}</div>' \
+           '<div style="color:#e84427">&frasl;{}&frasl;</div>' \
+           '<div>{}</div>' \
+           '<div style="margin-top:1.25em">' \
+           '<a href="{}">See more on dictionary.cambridge.org</a>' \
+           '</div>' \
+        .format(_join_list(note.pos_list), note.transcription,
+                translations_html, note.url)
 
 
 def _query(word, src_lang, dst_lang):
@@ -111,3 +157,7 @@ def _query(word, src_lang, dst_lang):
 def _extract_title(bs):
     """ Extract title of page"""
     return bs.find(class_='di-title').text
+
+
+def _join_list(string_list):
+    return ", ".join(string_list)

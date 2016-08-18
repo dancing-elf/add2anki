@@ -1,7 +1,7 @@
 """Script to convert user's words to csv file that can be imported to Anki"""
 import sys
 import argparse
-import add2anki.cambridge
+import add2anki.cambridge as cambridge
 
 
 def csv4anki():
@@ -21,9 +21,8 @@ def csv4anki():
             if not word:
                 continue
             print('translating "{}"'.format(word))
-            note = add2anki.cambridge.translate(
-                word, args.src_lang, args.dst_lang)
-            print(note.word + "\t" + note.to_html(), file=output_file)
+            note = cambridge.translate(word, args.src_lang, args.dst_lang)
+            print(note.word + "\t" + cambridge.to_html(note), file=output_file)
 
 
 if __name__ == '__main__':
