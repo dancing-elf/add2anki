@@ -1,8 +1,13 @@
 """Interactively translate and add words to csv file if needed"""
-import sys
 import argparse
-import add2anki.cambridge as cambridge
+import sys
+import tempfile
+import urllib
+
 import colorama
+import pygame
+
+import add2anki.cambridge as cambridge
 
 
 def add2anki():
@@ -65,6 +70,9 @@ def _handle_sound(note):
     if not note:
         _warn_none_note()
         return
+    with tempfile.NamedTemporaryFile() as temp:
+        urllib.request.urlretrieve(note.pronunciation, temp.name)
+        _play_audio(temp.name)
 
 
 def _handle_word(word, src_lang, dst_lang):
@@ -77,6 +85,13 @@ def _handle_word(word, src_lang, dst_lang):
         print(colorama.Fore.RED + 'Error while handle {}: '.format(word),
               sys.exc_info())
     return note
+
+
+def _play_audio(path):
+    """Play sound with pygame"""
+    pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=4096)
+    audio = pygame.mixer.Sound(path)
+    audio.play()
 
 
 def _warn_none_note():

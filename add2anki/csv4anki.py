@@ -1,6 +1,7 @@
 """Script to convert user's words to csv file that can be imported to Anki"""
-import sys
 import argparse
+import sys
+
 import add2anki.cambridge as cambridge
 
 

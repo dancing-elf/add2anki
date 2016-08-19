@@ -1,8 +1,9 @@
 """Script to extract data for selected word from http://dictionary.cambridge.org"""
-import urllib.request
-from bs4 import BeautifulSoup
 import re
+import urllib.request
+
 import colorama
+from bs4 import BeautifulSoup
 
 
 class CambridgeNote(object):
@@ -11,6 +12,7 @@ class CambridgeNote(object):
     Attributes:
         _word: dictionary form of requested word
         _pos_list: possible part of speech
+        _pronunciation: pronunciation of word
         _transcription: list of CambridgeTranslation
         _translations: list of possible translations
         _url: source web page
@@ -48,9 +50,11 @@ class CambridgeNote(object):
         def example(self):
             return self._example
 
-    def __init__(self, word, pos_list, transcription, translations, url):
+    def __init__(self, word, pos_list, pronunciation,
+                 transcription, translations, url):
         self._word = word
         self._pos_list = pos_list
+        self._pronunciation = pronunciation
         self._transcription = transcription
         self._translations = translations
         self._url = url
@@ -62,6 +66,10 @@ class CambridgeNote(object):
     @property
     def pos_list(self):
         return self._pos_list
+
+    @property
+    def pronunciation(self):
+        return self._pronunciation
 
     @property
     def transcription(self):
@@ -87,13 +95,16 @@ def translate(word, src_lang, dst_lang):
     url, bs, dict_form = _fetch_data(word, src_lang, dst_lang)
 
     pos_list = []
-    for pos_html in bs.findAll(class_='posgram'):
+    for pos_html in bs.find_all(class_='posgram'):
         pos_list.append(pos_html.span.text)
+
+    play_button = bs.select_one('.audio_play_button.us')
+    pronunciation = play_button.attrs['data-src-ogg']
 
     transcription = bs.find(class_='ipa').text
 
     trans_list = []
-    for sense_block in bs.findAll(class_='sense-block'):
+    for sense_block in bs.find_all(class_='sense-block'):
         if sense_block.find(class_='phrase-block'):
             continue
 
@@ -111,7 +122,8 @@ def translate(word, src_lang, dst_lang):
             CambridgeNote.CambridgeTranslation(
                 title, definition, trans, example))
 
-    return CambridgeNote(dict_form, pos_list, transcription, trans_list, url)
+    return CambridgeNote(dict_form, pos_list, pronunciation,
+                         transcription, trans_list, url)
 
 
 def to_html(note):
