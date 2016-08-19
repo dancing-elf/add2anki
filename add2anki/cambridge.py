@@ -138,16 +138,16 @@ def to_html(note):
 
 def print_note(note):
     """Print note to terminal"""
-    print(colorama.Style.BRIGHT + colorama.Fore.GREEN + note.word)
+    print(colorama.Style.BRIGHT + colorama.Fore.MAGENTA + note.word)
     print(colorama.Style.BRIGHT + _join(note.pos_list))
     print(colorama.Style.BRIGHT + colorama.Fore.RED + note.transcription)
     for trans in note.translations:
         if trans.title:
-            print(colorama.Style.BRIGHT + colorama.Fore.MAGENTA + trans.title)
-        print(trans.definition)
-        print(colorama.Style.BRIGHT + colorama.Fore.CYAN + _join(trans.translations))
+            print(colorama.Style.BRIGHT + colorama.Fore.GREEN + trans.title)
+        print(colorama.Fore.LIGHTGREEN_EX + trans.definition)
+        print(colorama.Fore.CYAN + colorama.Style.BRIGHT + _join(trans.translations))
         if trans.example:
-            print(trans.example)
+            print(colorama.Fore.GREEN + trans.example)
 
 
 def _fetch_data(word, src_lang, dst_lang):
