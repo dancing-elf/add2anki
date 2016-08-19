@@ -138,39 +138,42 @@ def to_html(note):
 def _fetch_data(word, src_lang, dst_lang):
     """Fetch data for parsing"""
 
-    def get_page_title(bs):
-        return bs.find(class_='di-title').text
-
-    def do_query(query_word):
-        query_url = _CAMBRIDGE_QUERY_URL.format(
-            src=src_lang, dst=dst_lang, word=query_word)
-        with urllib.request.urlopen(query_url) as response:
-            encoding = response.headers.get_content_charset()
-            html = response.read().decode(encoding)
-            return query_url, BeautifulSoup(html, 'html.parser')
-
-    def is_dictionary_form(string):
-        # dictionary form doesn't contains any special symbol.
-        # It's single word
-        return re.match(r'\A[\w]+\Z', string)
-
-    url, bs = do_query(word)
-    title = get_page_title(bs)
+    url, bs = _do_query(word, src_lang, dst_lang)
+    title = _get_page_title(bs)
 
     # check derivation form. If title contains special symbols
     # then it is not dictionary form of query word and so we should
     # extract it from page and fetch translation for that dictionary form
-    if not is_dictionary_form(title):
+    if not _is_dictionary_form(title):
         derived = re.search(r'“([^”]*)”', title).group(0)
         derived = derived[1:-1]
         print('"{}" is derivation from "{}". Search it.'.format(word, derived))
-        url, bs = do_query(derived)
-        title = get_page_title(bs)
+        url, bs = _do_query(derived, src_lang, dst_lang)
+        title = _get_page_title(bs)
         # if we can't get dictionary form when we can't parse page
-        if not is_dictionary_form(title):
+        if not _is_dictionary_form(title):
             raise Exception("Can't find dictionary form for {}".format(title))
 
     return url, bs, title
+
+
+def _get_page_title(bs):
+    return bs.find(class_='di-title').text
+
+
+def _do_query(query_word, src_lang, dst_lang):
+    query_url = _CAMBRIDGE_QUERY_URL.format(
+        src=src_lang, dst=dst_lang, word=query_word)
+    with urllib.request.urlopen(query_url) as response:
+        encoding = response.headers.get_content_charset()
+        html = response.read().decode(encoding)
+        return query_url, BeautifulSoup(html, 'html.parser')
+
+
+def _is_dictionary_form(string):
+    # dictionary form doesn't contains any special symbol.
+    # It's single word
+    return re.match(r'\A[\w]+\Z', string)
 
 
 def _join(string_list):
