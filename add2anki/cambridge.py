@@ -2,6 +2,7 @@
 import urllib.request
 from bs4 import BeautifulSoup
 import re
+import colorama
 
 
 class CambridgeNote(object):
@@ -104,7 +105,7 @@ def translate(word, src_lang, dst_lang):
         trans = list(map(str.strip, trans_str.split(',')))
 
         example_block = sense_block.find(class_='examp')
-        example = example_block.text if example_block else None
+        example = example_block.text.strip() if example_block else None
 
         trans_list.append(
             CambridgeNote.CambridgeTranslation(
@@ -133,6 +134,20 @@ def to_html(note):
            '</div>' \
         .format(_join(note.pos_list), note.transcription,
                 translations_html, note.url)
+
+
+def print_note(note):
+    """Print note to terminal"""
+    print(colorama.Style.BRIGHT + colorama.Fore.GREEN + note.word)
+    print(colorama.Style.BRIGHT + _join(note.pos_list))
+    print(colorama.Style.BRIGHT + colorama.Fore.RED + note.transcription)
+    for trans in note.translations:
+        if trans.title:
+            print(colorama.Style.BRIGHT + colorama.Fore.MAGENTA + trans.title)
+        print(trans.definition)
+        print(colorama.Style.BRIGHT + colorama.Fore.CYAN + _join(trans.translations))
+        if trans.example:
+            print(trans.example)
 
 
 def _fetch_data(word, src_lang, dst_lang):

@@ -8,10 +8,10 @@ def csv4anki():
     """parse arguments and write data to csv"""
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-in', dest="input", help='File with new words')
-    parser.add_argument('-out', dest="output", help='Output csv file with tab delimiter')
-    parser.add_argument('-from', dest="src_lang", help='Source language')
-    parser.add_argument('-to', dest="dst_lang", help='Destination language')
+    parser.add_argument('-in', dest='input', help='File with new words')
+    parser.add_argument('-out', dest='output', help='Output csv file with tab delimiter')
+    parser.add_argument('-from', dest='src_lang', help='Source language')
+    parser.add_argument('-to', dest='dst_lang', help='Destination language')
 
     args = parser.parse_args()
 
