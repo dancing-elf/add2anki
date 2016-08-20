@@ -96,7 +96,3 @@ def _play_audio(path):
 
 def _warn_none_note():
     print('There is no successfully translated word')
-
-
-if __name__ == '__main__':
-    sys.exit(add2anki())
