@@ -13,9 +13,12 @@ import add2anki.cambridge as cambridge
 def add2anki():
     """Translate and add words to csv file if needed"""
     parser = argparse.ArgumentParser()
-    parser.add_argument('-from', dest='src_lang', help='Source language')
-    parser.add_argument('-to', dest='dst_lang', help='Destination language')
-    parser.add_argument('-out', dest='output', nargs='?', help='Destination csv file')
+    parser.add_argument('-from', dest='src_lang',
+                        help='Source language', required=True)
+    parser.add_argument('-to', dest='dst_lang',
+                        help='Destination language', required=True)
+    parser.add_argument('-out', dest='output', nargs='?',
+                        help='Destination csv file')
     args = parser.parse_args()
 
     colorama.init(autoreset=True)
