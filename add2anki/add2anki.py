@@ -17,7 +17,7 @@ def add2anki():
                         help='Source language', required=True)
     parser.add_argument('-to', dest='dst_lang',
                         help='Destination language', required=True)
-    parser.add_argument('-out', dest='output', nargs='?',
+    parser.add_argument('-out', dest='output',
                         help='Destination csv file')
     args = parser.parse_args()
 
