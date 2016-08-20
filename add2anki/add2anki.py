@@ -28,6 +28,8 @@ def add2anki():
             pass
         elif word == 'h':
             _handle_help()
+        elif word == 'q':
+            sys.exit(0)
         elif word == 'a':
             _handle_add(note, args.output)
         elif word == 's':
@@ -48,6 +50,7 @@ def _print_invitation():
 def _handle_help():
     """Display help"""
     print('h display this help')
+    print('q exit from add2anki')
     print('a add note to csv file')
     print('s play sound for last word')
 
