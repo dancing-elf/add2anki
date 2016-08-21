@@ -130,19 +130,24 @@ def to_html(note):
     """Convert CambridgeNote to html for Anki"""
     translations_html = ''
     for trans in note.translations:
+        title_div = _replace_empty(trans.title,
+                                   '<div style="font-weight: bold">{}</div>')
+        example_div = _replace_empty(trans.example, '<div>{}</div>')
+        def_div = _replace_empty(trans.definition, '<div>{}</div>')
         translations_html += '<div style="margin-top:0.5em">' \
-                             '<div style="font-weight: bold">{}</div>' \
-                             '<div>{}</div>' \
+                             '{}' \
+                             '{}' \
                              '<div style="color: #0096ab">{}</div>' \
-                             '<div>{}</div>' \
+                             '{}' \
                              '</div>'\
-            .format(trans.title, trans.definition,
-                    _join(trans.translations), trans.example)
-    return '<div style="color:#444;font-style:italic">{}</div>' \
+            .format(title_div, def_div, _join(trans.translations), example_div)
+    return '<div class="generated">' \
+           '<div style="color:#444;font-style:italic">{}</div>' \
            '<div style="color:#e84427">&frasl;{}&frasl;</div>' \
            '<div>{}</div>' \
            '<div style="margin-top:1.25em">' \
            '<a href="{}">See more on dictionary.cambridge.org</a>' \
+           '</div>' \
            '</div>' \
         .format(_join(note.pos_list), note.transcription,
                 translations_html, note.url)
@@ -201,6 +206,12 @@ def _is_dictionary_form(string):
     # dictionary form doesn't contains any special symbol.
     # It's single word
     return re.match(r'\A[\w]+\Z', string)
+
+
+def _replace_empty(string, template):
+    if not string:
+        return ''
+    return template.format(string)
 
 
 def _join(string_list):
